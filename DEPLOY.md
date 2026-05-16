@@ -152,3 +152,13 @@ Frontend:
 - The Boston images live under `backend/static/images/` and are served by the backend at `/api/static/images/...`.
 - The public `/api/refresh` endpoint is protected only when `REFRESH_TOKEN` is set. Set it in production.
 - The app currently uses OSM Nominatim for geocoding with a Mongo-backed cache. This is okay for low traffic; consider Mapbox or Google Geocoding if usage grows.
+
+## Future multi-city replication note
+
+Colin expects this pattern may be replicated for Baltimore, Austin, New York, and other cities. Keep production decisions portable:
+
+- Keep city-specific data-source logic isolated in adapters/modules, not scattered through frontend components.
+- Prefer environment-driven city config for app name, city bounds, source IDs, imagery, and editorial voice.
+- Keep deploy steps reusable across city repos.
+- Avoid hard-coding Boston-only domains, database names, or Railway/Vercel project names into application code.
+- If this grows beyond a few city clones, consider one shared backend with city routes (`/api/{city}/...`) and per-city frontend configs instead of fully separate apps.
