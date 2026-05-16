@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI, HTTPException, Query
+from fastapi import APIRouter, FastAPI, Header, HTTPException, Query, status
 from fastapi.staticfiles import StaticFiles
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
@@ -211,9 +211,37 @@ async def health() -> dict[str, Any]:
     }
 
 
+def _check_refresh_auth(
+    x_refresh_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+) -> None:
+    """Protect manual/scheduled refreshes when REFRESH_TOKEN is configured.
+
+    Local/dev deployments can omit REFRESH_TOKEN. In production, set it and send
+    either `X-Refresh-Token: <token>` or `Authorization: Bearer <token>`.
+    """
+    expected = os.environ.get("REFRESH_TOKEN")
+    if not expected:
+        return
+
+    bearer = None
+    if authorization and authorization.lower().startswith("bearer "):
+        bearer = authorization.split(" ", 1)[1].strip()
+
+    if x_refresh_token != expected and bearer != expected:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token required.",
+        )
+
+
 @api.post("/refresh")
-async def refresh() -> dict[str, Any]:
-    """Force a re-fetch from BPD. Useful after deploys."""
+async def refresh(
+    x_refresh_token: Optional[str] = Header(default=None),
+    authorization: Optional[str] = Header(default=None),
+) -> dict[str, Any]:
+    """Force a re-fetch from BPD. Useful after deploys and cron refreshes."""
+    _check_refresh_auth(x_refresh_token=x_refresh_token, authorization=authorization)
     meta = await refresh_cache(db)
     return meta
 
@@ -619,10 +647,16 @@ STATIC_DIR = ROOT_DIR / "static"
 if STATIC_DIR.is_dir():
     app.mount("/api/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", "*").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origins=cors_origins or ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

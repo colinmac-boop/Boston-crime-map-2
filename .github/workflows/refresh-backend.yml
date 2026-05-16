@@ -1,0 +1,26 @@
+name: Refresh Boston Crime Map cache
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Hourly at :17. BPD cache TTL is 1 hour.
+    - cron: '17 * * * *'
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call backend refresh endpoint
+        env:
+          BACKEND_URL: ${{ secrets.BOSTON_CRIME_MAP_BACKEND_URL }}
+          REFRESH_TOKEN: ${{ secrets.BOSTON_CRIME_MAP_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKEND_URL:-}" ]; then
+            echo "Missing BOSTON_CRIME_MAP_BACKEND_URL secret" >&2
+            exit 1
+          fi
+          curl --fail --show-error --silent \
+            -X POST \
+            -H "X-Refresh-Token: ${REFRESH_TOKEN:-}" \
+            "${BACKEND_URL%/}/api/refresh"
