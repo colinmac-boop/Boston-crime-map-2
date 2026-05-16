@@ -1,0 +1,363 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --bg: #f4f1ea;
+    --surface: #fcfaf5;
+    --surface-dark: #1c1b1a;
+    --ink: #1a1a1a;
+    --oxblood: #8b1c1c;
+    --oxblood-bright: #a62121;
+    --harbor: #14253a;
+    --amber: #d9772b;
+    --muted: #66635c;
+    --rule: #1a1a1a;
+}
+
+html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background-color: var(--bg);
+    background-image:
+        radial-gradient(rgba(26, 26, 26, 0.035) 1px, transparent 1px),
+        radial-gradient(rgba(26, 26, 26, 0.025) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 2px;
+}
+
+/* Newsprint grain overlay over the whole page */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.18;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+#root { position: relative; z-index: 2; }
+
+/* Typography classes */
+.font-display { font-family: 'Playfair Display', Georgia, serif; }
+.font-sub { font-family: 'Oswald', 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
+.font-body { font-family: 'IBM Plex Sans', sans-serif; }
+.font-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+/* Editorial elements */
+.rule { border-top: 2px solid var(--ink); }
+.rule-thin { border-top: 1px solid var(--ink); }
+.rule-double {
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    height: 6px;
+}
+
+.small-caps {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Brutalist offset shadow utility */
+.shadow-stamp { box-shadow: 4px 4px 0 var(--ink); }
+.shadow-stamp-lg { box-shadow: 6px 6px 0 var(--ink); }
+.shadow-stamp-oxblood { box-shadow: 4px 4px 0 var(--oxblood); }
+
+.hover-lift {
+    transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+}
+.hover-lift:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--ink);
+}
+
+/* Masthead */
+.masthead-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.85;
+}
+
+/* Drop cap for editorial blurbs */
+.dropcap::first-letter {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    float: left;
+    font-size: 4.4rem;
+    line-height: 0.85;
+    padding: 0.35rem 0.5rem 0 0;
+    color: var(--oxblood);
+}
+
+/* Leaflet overrides — dark, gritty */
+.leaflet-container {
+    background: #0f0f10;
+    font-family: 'IBM Plex Mono', monospace;
+}
+.leaflet-control-attribution {
+    background: rgba(28, 27, 26, 0.85) !important;
+    color: #aaa !important;
+    font-size: 10px !important;
+    border-radius: 0 !important;
+}
+.leaflet-control-attribution a { color: #d6c5a2 !important; }
+.leaflet-control-zoom a {
+    background: var(--surface-dark) !important;
+    color: var(--bg) !important;
+    border: 1px solid var(--ink) !important;
+    border-radius: 0 !important;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+}
+.leaflet-control-zoom a:hover {
+    background: var(--oxblood) !important;
+    color: #fff !important;
+}
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    border-radius: 0 !important;
+    box-shadow: 4px 4px 0 var(--ink) !important;
+    border: 1px solid var(--ink);
+}
+.leaflet-popup-content { margin: 0.7rem 0.9rem; font-family: 'IBM Plex Sans', sans-serif; }
+.leaflet-popup-content .pop-cat {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--oxblood);
+}
+.leaflet-popup-content .pop-desc {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    margin-top: 0.2rem;
+}
+.leaflet-popup-content .pop-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 0.35rem;
+}
+
+/* Crime category marker dots */
+.crime-dot {
+    border-radius: 50%;
+    border: 2px solid #0f0f10;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+}
+
+/* Marquee text */
+.marquee-band {
+    background: var(--ink);
+    color: var(--bg);
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    padding: 0.45rem 0;
+}
+@media (min-width: 640px) {
+    .marquee-band {
+        font-size: 0.85rem;
+        padding: 0.55rem 0;
+    }
+}
+.marquee-band .star { color: var(--oxblood-bright); padding: 0 1.4rem; }
+
+/* Section labels */
+.kicker {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 0.72rem;
+    color: var(--oxblood);
+    font-weight: 600;
+}
+
+/* Headlines */
+.headline-xl {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+}
+.headline-lg {
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+/* Numbers */
+.big-num {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+}
+
+/* Buttons */
+.btn-ink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 0.7rem 1.2rem;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 2px solid var(--ink);
+    transition: transform 140ms ease-out, box-shadow 140ms ease-out, background 140ms;
+}
+.btn-ink:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--oxblood);
+    background: var(--oxblood);
+}
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 0.7rem 1.2rem;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 2px solid var(--ink);
+    transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+}
+.btn-ghost:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--ink);
+}
+
+/* Card */
+.editorial-card {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+}
+.editorial-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--ink);
+}
+
+.editorial-card-dark {
+    background: var(--surface-dark);
+    color: var(--surface);
+    border: 2px solid var(--ink);
+}
+
+/* Image filter — newsprint. NOTE: avoid mix-blend-mode here, since it
+   destroys already-dark photos like a dusk skyline on a dark container. */
+.img-newsprint {
+    filter: grayscale(100%) contrast(1.18) brightness(1.05);
+}
+
+/* Halftone-ish overlay on hero photos */
+.halftone {
+    position: relative;
+}
+.halftone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(0,0,0,0.32) 1px, transparent 1.4px);
+    background-size: 4px 4px;
+    mix-blend-mode: multiply;
+    opacity: 0.4;
+    z-index: 2;
+}
+
+/* Bracket ornament */
+.bracket-l::before { content: "["; padding-right: 0.35rem; color: var(--oxblood); font-family: 'IBM Plex Mono', monospace; }
+.bracket-r::after { content: "]"; padding-left: 0.35rem; color: var(--oxblood); font-family: 'IBM Plex Mono', monospace; }
+
+/* Staggered entry */
+@keyframes paperdrop {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.paperdrop { animation: paperdrop 0.42s ease-out both; }
+
+/* Fix iOS Safari leaving the disclosure triangle on <summary> */
+details > summary {
+    list-style: none;
+}
+details > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Selection */
+::selection { background: var(--oxblood); color: var(--bg); }
+
+/* Tables — tight, blotter-style */
+.blotter td, .blotter th {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid rgba(26,26,26,0.25);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    vertical-align: top;
+}
+.blotter th {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 2px solid var(--ink);
+}
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 0 0% 3.9%;
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 3.9%;
+        --primary: 0 0% 9%;
+        --primary-foreground: 0 0% 98%;
+        --secondary: 0 0% 96.1%;
+        --secondary-foreground: 0 0% 9%;
+        --muted: 0 0% 96.1%;
+        --muted-foreground: 0 0% 45.1%;
+        --accent: 0 0% 96.1%;
+        --accent-foreground: 0 0% 9%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 0 0% 89.8%;
+        --input: 0 0% 89.8%;
+        --ring: 0 0% 3.9%;
+        --radius: 0;
+    }
+}
+@layer base {
+    * { border-color: hsl(var(--border)); }
+}

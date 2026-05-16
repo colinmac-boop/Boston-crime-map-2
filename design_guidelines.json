@@ -1,0 +1,93 @@
+{
+  "project_name": "Boston Crime Map & Editorial",
+  "theme": "Light",
+  "archetype": "Archetype 4 (Swiss & High-Contrast) / Editorial Brutalism",
+  "mood": "Gritty, tactile, snarky, civic, newsprint, deadpan Boston",
+  "colors": {
+    "background": "#F4F1EA",
+    "surface": "#FCFAF5",
+    "surface_dark": "#1C1B1A",
+    "primary": "#8B1C1C",
+    "primary_hover": "#A62121",
+    "secondary": "#14253A",
+    "border": "#1A1A1A",
+    "text_main": "#1A1A1A",
+    "text_muted": "#66635C",
+    "map_markers": {
+      "violent": "#8B1C1C",
+      "property": "#14253A",
+      "drugs": "#D9772B",
+      "other": "#66635C"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "'Playfair Display', serif",
+      "subheading": "'Oswald', sans-serif",
+      "body": "'IBM Plex Sans', sans-serif",
+      "mono": "'IBM Plex Mono', monospace"
+    },
+    "scale": {
+      "h1_masthead": "text-6xl md:text-8xl tracking-tighter uppercase font-black",
+      "h2": "text-4xl md:text-5xl tracking-tight",
+      "h3": "text-2xl md:text-3xl uppercase tracking-wide",
+      "body": "text-base leading-relaxed",
+      "small_caps": "text-xs uppercase tracking-[0.2em]"
+    }
+  },
+  "spacing_and_layout": {
+    "grid_system": "Bento-style editorial grid. Heavy use of CSS grid with asymmetric column spans (e.g., 8-col hero, 4-col sidebar).",
+    "borders": "Exposed skeleton. Use pure 1px or 2px solid black borders (border-collapse style) to separate sections like a vintage newspaper.",
+    "corners": "rounded-none. No soft corners allowed. Sharp, printed edges.",
+    "shadows": "Neo-brutalist offset shadows. shadow-[4px_4px_0px_#1A1A1A] for cards and interactive elements.",
+    "padding": "Generous internal padding for reading (p-6 to p-8), but tight data tables."
+  },
+  "component_rules": {
+    "masthead": "Magazine/Newspaper style. Huge centered or left-aligned typography. Include 'Vol. I', the current date, and a stark black dividing line.",
+    "ticker_marquee": "Use react-fast-marquee. Font: mono. Border top and bottom. Content: Deadpan Boston-isms and snarky updates.",
+    "buttons": "Sharp rectangles, high contrast. On hover: translate-x-[-2px] translate-y-[-2px] and increase offset shadow.",
+    "cards_neighborhoods": "Solid background, black borders, monochromatic images on hover. Display stats prominently.",
+    "interactive_map": "Leaflet + OpenStreetMap. STRICT RULE: Use a dark or muted tile layer (like CartoDB Dark Matter or Stadia Alidade Smooth Dark) to contrast heavily with the cream newsprint background. No standard bright Google Maps.",
+    "wicked_picks_section": "Editorial sidebar. Background: surface_dark (#1C1B1A) with off-white text to break the page rhythm. Serifs for the snarky commentary."
+  },
+  "animation_interactions": {
+    "hover_states": "Crisp and mechanical. Invert colors (black to cream) or use stark offset shadows.",
+    "transitions": "Fast and direct (duration-150, ease-in-out). Avoid slow, overly smooth 'app-like' fades.",
+    "page_load": "Staggered fade-in from bottom for grid items to mimic laying down paper sections."
+  },
+  "media_and_assets": {
+    "textures": {
+      "newsprint_bg": "https://static.prod-images.emergentagent.com/jobs/3f956c8d-0e00-4941-b7d3-ebf0352337bc/images/d9b7350e30e907449e18773dc723d6a2d65606fa59ae98a082efaf91c3b60158.png",
+      "gritty_dark": "https://static.prod-images.emergentagent.com/jobs/3f956c8d-0e00-4941-b7d3-ebf0352337bc/images/90d4a6c1ea1274f5ca5f88a723cc1ac4b5cd7d51b7dcb853044df6d51f01e00e.png"
+    },
+    "image_urls": [
+      {
+        "category": "hero_boston_citgo",
+        "url": "https://images.unsplash.com/photo-1740436134129-ff51f5620621?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHw0fHxib3N0b24lMjBjaXRnbyUyMHNpZ24lMjBmZW53YXl8ZW58MHx8fHwxNzc4ODQ5MDQ4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Boston Citgo Sign near Fenway. Use for neighborhood features or main editorial image, optionally with a grayscale/halftone CSS filter."
+      },
+      {
+        "category": "editorial_brownstones",
+        "url": "https://images.unsplash.com/photo-1766381854360-e4ab2f8f7291?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxib3N0b24lMjBicm93bnN0b25lJTIwc3RyZWV0fGVufDB8fHx8MTc3ODg0OTA0OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Gritty cobblestone street with brick buildings. Good for Southie/Back Bay category headers."
+      },
+      {
+        "category": "editorial_zakim_night",
+        "url": "https://images.unsplash.com/photo-1560128053-f8c9fcd2b0da?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxib3N0b24lMjB6YWtpbSUyMGJyaWRnZSUyMG5pZ2h0fGVufDB8fHx8MTc3ODg0OTA1Nnww&ixlib=rb-4.1.0&q=85",
+        "description": "Zakim bridge photography. Excellent for 'Wicked Picks' background or footer."
+      }
+    ],
+    "image_styling": "Images should ideally have a CSS filter applied (e.g., grayscale, high contrast, or a slight sepia tint) to match the newsprint aesthetic. Max opacity overlay bg-black/40 if text is on top."
+  },
+  "testing_requirements": {
+    "attributes": "All interactive elements, buttons, and navigation MUST include data-testid. Example: data-testid='map-filter-assault', data-testid='neighborhood-card-southie'."
+  },
+  "instructions_to_main_agent": [
+    "Avoid standard Vercel/SaaS templates entirely. Do not center grids uniformly. Create visual tension.",
+    "Do not use generic sans-serif fonts like Inter. Stick to Playfair, Oswald, and IBM Plex.",
+    "Apply the newsprint_bg texture as a low-opacity background image to the main body to give a tactile feel (mix-blend-multiply works well).",
+    "Build the 'Wicked Picks' section as a stark editorial column, maybe spanning 1/3 of the page, full height alongside the map or data.",
+    "Override Shadcn component radii to rounded-none and apply solid borders.",
+    "For the crime map, use Leaflet. Dark tiles are critical for the gritty look. Make markers distinct but not celebratory."
+  ]
+}
