@@ -196,9 +196,15 @@ async def refresh_cache(db) -> dict[str, Any]:
         chunk = 1000
         for i in range(0, len(normalized), chunk):
             await db.incidents.insert_many(normalized[i:i + chunk])
-        await db.incidents.create_index("occurred_ts")
-        await db.incidents.create_index("category")
-        await db.incidents.create_index("district")
+        # Indexes are helpful but not required for this small cache. Some tiny
+        # managed Mongo volumes refuse index builds when available disk is below
+        # MongoDB's safety threshold, even though the ~8k-row cache itself fits.
+        # Keep refreshes successful and log index failures for later tuning.
+        for field in ("occurred_ts", "category", "district"):
+            try:
+                await db.incidents.create_index(field)
+            except Exception as exc:  # pragma: no cover - deployment-specific
+                logger.warning("Skipping optional index %s: %s", field, exc)
 
     meta = {
         "_id": "bpd_cache",
