@@ -17,10 +17,16 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${BACKEND_URL:-}" ]; then
-            echo "Missing BOSTON_CRIME_MAP_BACKEND_URL secret" >&2
-            exit 1
+            echo "BOSTON_CRIME_MAP_BACKEND_URL is not configured; skipping scheduled refresh."
+            echo "Add repository Actions secrets BOSTON_CRIME_MAP_BACKEND_URL and BOSTON_CRIME_MAP_REFRESH_TOKEN to enable this job."
+            exit 0
+          fi
+          if [ -z "${REFRESH_TOKEN:-}" ]; then
+            echo "BOSTON_CRIME_MAP_REFRESH_TOKEN is not configured; skipping scheduled refresh."
+            echo "Add the same REFRESH_TOKEN value used by the Railway backend."
+            exit 0
           fi
           curl --fail --show-error --silent \
             -X POST \
-            -H "X-Refresh-Token: ${REFRESH_TOKEN:-}" \
+            -H "X-Refresh-Token: ${REFRESH_TOKEN}" \
             "${BACKEND_URL%/}/api/refresh"
