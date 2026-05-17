@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
 from bpd_client import DISTRICTS, ensure_fresh_locked, refresh_cache
+from bpd_stories_client import ensure_stories_fresh_locked, refresh_stories_cache
 from boston_data import (
     CATEGORIES,
     CATEGORY_BY_KEY,
@@ -243,7 +244,10 @@ async def refresh(
     """Force a re-fetch from BPD. Useful after deploys and cron refreshes."""
     _check_refresh_auth(x_refresh_token=x_refresh_token, authorization=authorization)
     meta = await refresh_cache(db)
-    return meta
+    stories_meta = await refresh_stories_cache(db)
+    # Keep the original top-level BPD cache fields for tests/clients, while
+    # adding the narrative-source refresh metadata alongside them.
+    return {**meta, "bpd_open_data": meta, "bpd_stories": stories_meta}
 
 
 # ---------------------------------------------------------------------------
@@ -289,6 +293,25 @@ async def recent_incidents(limit: int = Query(12, ge=1, le=50)) -> dict[str, Any
     cursor = db.incidents.find({}, PROJECTION).sort("occurred_ts", -1).limit(limit)
     items = await cursor.to_list(length=limit)
     return {"count": len(items), "items": items}
+
+
+@api.get("/stories")
+async def list_stories(
+    limit: int = Query(10, ge=1, le=50),
+    mappable_only: bool = Query(False),
+) -> dict[str, Any]:
+    """Recent narrative BPD posts suitable for map context/editorial listing.
+
+    This is intentionally separate from /incidents: stories are source-attributed
+    narrative posts, not structured open-data incident rows.
+    """
+    meta = await ensure_stories_fresh_locked(db)
+    query: dict[str, Any] = {}
+    if mappable_only:
+        query["mappable"] = True
+    cursor = db.bpd_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit)
+    items = await cursor.to_list(length=limit)
+    return {"count": len(items), "items": items, "cache": {k: v for k, v in meta.items() if k != "_id"}}
 
 
 # ---------------------------------------------------------------------------

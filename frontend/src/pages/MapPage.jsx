@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { fetchIncidents, fetchNeighborhoods, fetchCategories } from "@/lib/api";
+import { fetchIncidents, fetchNeighborhoods, fetchCategories, fetchStories } from "@/lib/api";
 import { CATEGORY_LABELS, CATEGORY_ORDER, colorFor } from "@/lib/format";
 import CrimeMap from "@/components/CrimeMap";
 import { pinSvgInline } from "@/components/CrimePin";
@@ -24,6 +24,7 @@ export default function MapPage() {
     const [category, setCategory] = useState(initialCat);
     const [neighborhood, setNeighborhood] = useState(initialN);
     const [incidents, setIncidents] = useState([]);
+    const [stories, setStories] = useState([]);
     const [neighborhoods, setNeighborhoods] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,8 +41,23 @@ export default function MapPage() {
         const q = { days, limit: 2000 };
         if (category) q.category = category;
         if (neighborhood) q.neighborhood = neighborhood;
-        fetchIncidents(q)
-            .then((r) => setIncidents(r.items || []))
+        Promise.all([
+            fetchIncidents(q),
+            fetchStories(20, true),
+        ])
+            .then(([r, storyData]) => {
+                setIncidents(r.items || []);
+                setStories((storyData.items || []).filter((s) => {
+                    const ageDays = s.occurred_on ? (Date.now() - new Date(s.occurred_on).getTime()) / 86400000 : 0;
+                    if (ageDays > days) return false;
+                    if (category) {
+                        const cat = categories.find((c) => c.slug === category || c.key === category);
+                        if (cat && s.category !== cat.key) return false;
+                    }
+                    if (neighborhood && (s.neighborhood || "").toLowerCase().replace(/\s+/g, "-") !== neighborhood) return false;
+                    return true;
+                }));
+            })
             .finally(() => setLoading(false));
 
         // Sync URL
@@ -50,7 +66,7 @@ export default function MapPage() {
         if (neighborhood) np.neighborhood = neighborhood;
         if (days !== 30) np.days = String(days);
         setParams(np, { replace: true });
-    }, [days, category, neighborhood, setParams]);
+    }, [days, category, neighborhood, categories, setParams]);
 
     const counts = useMemo(() => {
         const c = { total: incidents.length };
@@ -60,7 +76,7 @@ export default function MapPage() {
 
     // When the address search returns results, swap the map's incident set
     // to the nearby items so the focus is tight on the address.
-    const mapIncidents = search ? search.near.items : incidents;
+    const mapIncidents = search ? search.near.items : [...stories, ...incidents];
     const searchPin = search
         ? { lat: search.hit.lat, lng: search.hit.lng, label: search.hit.label }
         : null;
@@ -142,7 +158,7 @@ export default function MapPage() {
                 <span>
                     {search
                         ? <>Showing <strong className="text-[var(--ink)]">{search.near.count}</strong> incidents within {search.radius} mi of your search</>
-                        : <>Showing <strong className="text-[var(--ink)]">{counts.total.toLocaleString()}</strong> incidents · {days}-day window</>
+                        : <>Showing <strong className="text-[var(--ink)]">{counts.total.toLocaleString()}</strong> incidents + <strong className="text-[var(--ink)]">{stories.length}</strong> BPD story pins · {days}-day window</>
                     }
                 </span>
                 {loading && <span className="animate-pulse">Loading…</span>}

@@ -17,6 +17,8 @@ export const fetchCategories = () => client.get("/categories").then((r) => r.dat
 export const fetchCategory = (slug) => client.get(`/categories/${slug}`).then((r) => r.data);
 export const fetchWickedPicks = (limit = 6) =>
     client.get(`/wicked-picks?limit=${limit}`).then((r) => r.data);
+export const fetchStories = (limit = 10, mappableOnly = false) =>
+    client.get("/stories", { params: { limit, mappable_only: mappableOnly } }).then((r) => r.data);
 
 export const geocodeAddress = (q) =>
     client.get("/geocode", { params: { q } }).then((r) => r.data);

@@ -7,6 +7,7 @@ import {
     fetchNeighborhoods,
     fetchCategories,
     fetchWickedPicks,
+    fetchStories,
 } from "@/lib/api";
 import {
     CATEGORY_LABELS,
@@ -36,6 +37,7 @@ export default function HomePage() {
     const [neighborhoods, setNeighborhoods] = useState([]);
     const [categories, setCategories] = useState([]);
     const [picks, setPicks] = useState([]);
+    const [stories, setStories] = useState([]);
 
     useEffect(() => {
         let alive = true;
@@ -46,11 +48,14 @@ export default function HomePage() {
             fetchNeighborhoods(),
             fetchCategories(),
             fetchWickedPicks(6),
-        ]).then(([ov, rec, inc, ns, cats, p]) => {
+            fetchStories(8),
+        ]).then(([ov, rec, inc, ns, cats, p, storyData]) => {
             if (!alive) return;
             setOverview(ov);
             setRecent(rec.items || []);
-            setMapIncidents(inc.items || []);
+            const storyItems = storyData.items || [];
+            setStories(storyItems);
+            setMapIncidents([...(storyItems.filter((s) => s.mappable)), ...(inc.items || [])]);
             setNeighborhoods(ns.items || []);
             setCategories(cats.items || []);
             setPicks(p.items || []);
@@ -190,6 +195,57 @@ export default function HomePage() {
                         </ul>
                     </div>
                 </aside>
+            </section>
+
+            {/* BPD STORIES */}
+            <section className="mt-16" data-testid="bpd-stories-section">
+                <div className="rule mb-4" />
+                <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
+                    <div>
+                        <div className="kicker">Section C · BPD Stories</div>
+                        <h3 className="headline-xl text-4xl md:text-6xl mt-1">
+                            In the news <span className="font-display italic text-[var(--muted)] text-3xl md:text-4xl">while open data catches up</span>
+                        </h3>
+                        <p className="font-display italic text-[var(--muted)] mt-1 max-w-3xl">
+                            Narrative items from Boston Police. Mappable stories are added to the map; broader safety alerts stay here as context.
+                        </p>
+                    </div>
+                    <a href="https://police.boston.gov/stories-in-the-news/" target="_blank" rel="noreferrer" className="btn-ghost text-xs">
+                        Source →
+                    </a>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {stories.slice(0, 6).map((s, i) => (
+                        <article
+                            key={s.story_id || s.source_url || i}
+                            className="editorial-card p-5 paperdrop"
+                            style={{ animationDelay: `${i * 35}ms` }}
+                            data-testid={`story-card-${i}`}
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <span
+                                    dangerouslySetInnerHTML={{ __html: pinSvgInline(s.category, 22) }}
+                                    style={{ display: "inline-flex", alignItems: "center" }}
+                                />
+                                <span className="font-sub uppercase tracking-widest text-[10px]" style={{ color: colorFor(s.category) }}>
+                                    {CATEGORY_LABELS[s.category] || "BPD Story"}
+                                </span>
+                                <span className="font-mono text-[10px] text-[var(--muted)] ml-auto">
+                                    {formatRelative(s.occurred_on)}
+                                </span>
+                            </div>
+                            <h4 className="font-display text-2xl leading-tight">{s.headline || s.title}</h4>
+                            <p className="font-body text-sm mt-3 leading-relaxed">{s.narrative}</p>
+                            <div className="rule-thin mt-4 pt-2 flex justify-between gap-3 font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">
+                                <span>{s.mappable ? `${s.street} · mapped` : `${s.neighborhood || "Boston"} · narrative`}</span>
+                                <a href={s.source_url} target="_blank" rel="noreferrer" className="hover:text-[var(--oxblood)]">Read →</a>
+                            </div>
+                        </article>
+                    ))}
+                    {stories.length === 0 && (
+                        <div className="font-mono text-[var(--muted)]">Loading BPD stories…</div>
+                    )}
+                </div>
             </section>
 
             {/* WICKED PICKS */}
