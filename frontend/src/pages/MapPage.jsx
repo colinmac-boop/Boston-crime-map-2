@@ -158,7 +158,7 @@ export default function MapPage() {
                 <span>
                     {search
                         ? <>Showing <strong className="text-[var(--ink)]">{search.near.count}</strong> incidents within {search.radius} mi of your search</>
-                        : <>Showing <strong className="text-[var(--ink)]">{counts.total.toLocaleString()}</strong> incidents + <strong className="text-[var(--ink)]">{stories.length}</strong> BPD story pins · {days}-day window</>
+                        : <>Showing <strong className="text-[var(--ink)]">{counts.total.toLocaleString()}</strong> incidents + <strong className="text-[var(--ink)]">{stories.length}</strong> attributed story pins · {days}-day window</>
                     }
                 </span>
                 {loading && <span className="animate-pulse">Loading…</span>}

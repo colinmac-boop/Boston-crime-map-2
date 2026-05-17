@@ -22,6 +22,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from bpd_client import DISTRICTS, ensure_fresh_locked, refresh_cache
 from bpd_stories_client import ensure_stories_fresh_locked, refresh_stories_cache
+from universal_hub_client import ensure_universal_hub_fresh, refresh_universal_hub_cache
 from boston_data import (
     CATEGORIES,
     CATEGORY_BY_KEY,
@@ -245,9 +246,15 @@ async def refresh(
     _check_refresh_auth(x_refresh_token=x_refresh_token, authorization=authorization)
     meta = await refresh_cache(db)
     stories_meta = await refresh_stories_cache(db)
+    universal_hub_meta = await refresh_universal_hub_cache(db)
     # Keep the original top-level BPD cache fields for tests/clients, while
-    # adding the narrative-source refresh metadata alongside them.
-    return {**meta, "bpd_open_data": meta, "bpd_stories": stories_meta}
+    # adding narrative-source refresh metadata alongside them.
+    return {
+        **meta,
+        "bpd_open_data": meta,
+        "bpd_stories": stories_meta,
+        "universal_hub": universal_hub_meta,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -305,13 +312,22 @@ async def list_stories(
     This is intentionally separate from /incidents: stories are source-attributed
     narrative posts, not structured open-data incident rows.
     """
-    meta = await ensure_stories_fresh_locked(db)
+    bpd_meta = await ensure_stories_fresh_locked(db)
+    universal_hub_meta = await ensure_universal_hub_fresh(db)
     query: dict[str, Any] = {}
     if mappable_only:
         query["mappable"] = True
-    cursor = db.bpd_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit)
-    items = await cursor.to_list(length=limit)
-    return {"count": len(items), "items": items, "cache": {k: v for k, v in meta.items() if k != "_id"}}
+    bpd_items = await db.bpd_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
+    uh_items = await db.universal_hub_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
+    items = sorted([*bpd_items, *uh_items], key=lambda x: x.get("occurred_ts", 0), reverse=True)[:limit]
+    return {
+        "count": len(items),
+        "items": items,
+        "cache": {
+            "bpd_stories": {k: v for k, v in bpd_meta.items() if k != "_id"},
+            "universal_hub": {k: v for k, v in universal_hub_meta.items() if k != "_id"},
+        },
+    }
 
 
 # ---------------------------------------------------------------------------

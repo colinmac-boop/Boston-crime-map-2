@@ -197,22 +197,27 @@ export default function HomePage() {
                 </aside>
             </section>
 
-            {/* BPD STORIES */}
-            <section className="mt-16" data-testid="bpd-stories-section">
+            {/* NARRATIVE STORIES */}
+            <section className="mt-16" data-testid="narrative-stories-section">
                 <div className="rule mb-4" />
                 <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
                     <div>
-                        <div className="kicker">Section C · BPD Stories</div>
+                        <div className="kicker">Section C · Crime Stories</div>
                         <h3 className="headline-xl text-4xl md:text-6xl mt-1">
                             In the news <span className="font-display italic text-[var(--muted)] text-3xl md:text-4xl">while open data catches up</span>
                         </h3>
                         <p className="font-display italic text-[var(--muted)] mt-1 max-w-3xl">
-                            Narrative items from Boston Police. Mappable stories are added to the map; broader safety alerts stay here as context.
+                            Narrative crime items from Boston Police and Universal Hub. Mappable stories are added to the map; broader alerts stay here as context.
                         </p>
                     </div>
-                    <a href="https://police.boston.gov/stories-in-the-news/" target="_blank" rel="noreferrer" className="btn-ghost text-xs">
-                        Source →
-                    </a>
+                    <div className="flex gap-2">
+                        <a href="https://police.boston.gov/stories-in-the-news/" target="_blank" rel="noreferrer" className="btn-ghost text-xs">
+                            BPD →
+                        </a>
+                        <a href="https://www.universalhub.com/crime/index.html" target="_blank" rel="noreferrer" className="btn-ghost text-xs">
+                            Universal Hub →
+                        </a>
+                    </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {stories.slice(0, 6).map((s, i) => (
@@ -228,7 +233,7 @@ export default function HomePage() {
                                     style={{ display: "inline-flex", alignItems: "center" }}
                                 />
                                 <span className="font-sub uppercase tracking-widest text-[10px]" style={{ color: colorFor(s.category) }}>
-                                    {CATEGORY_LABELS[s.category] || "BPD Story"}
+                                    {CATEGORY_LABELS[s.category] || "Crime Story"}
                                 </span>
                                 <span className="font-mono text-[10px] text-[var(--muted)] ml-auto">
                                     {formatRelative(s.occurred_on)}
@@ -238,7 +243,9 @@ export default function HomePage() {
                             <p className="font-body text-sm mt-3 leading-relaxed">{s.narrative}</p>
                             <div className="rule-thin mt-4 pt-2 flex justify-between gap-3 font-mono text-[10px] uppercase tracking-widest text-[var(--muted)]">
                                 <span>{s.mappable ? `${s.street} · mapped` : `${s.neighborhood || "Boston"} · narrative`}</span>
-                                <a href={s.source_url} target="_blank" rel="noreferrer" className="hover:text-[var(--oxblood)]">Read →</a>
+                                <a href={s.source_url} target="_blank" rel="noreferrer" className="hover:text-[var(--oxblood)]">
+                                    {s.source_name || s.attribution || "Source"} →
+                                </a>
                             </div>
                         </article>
                     ))}

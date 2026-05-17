@@ -10,7 +10,7 @@ import { pinIcon, pinSvgInline } from "@/components/CrimePin";
 // CartoDB Dark Matter — dark, gritty, civic.
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const TILE_ATTR =
-    '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a> · Incidents via <a href="https://data.boston.gov/">BPD Open Data</a> and <a href="https://police.boston.gov/stories-in-the-news/">BPD Stories</a>';
+    '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a> · Incidents via <a href="https://data.boston.gov/">BPD Open Data</a>; stories via <a href="https://police.boston.gov/stories-in-the-news/">BPD</a> and <a href="https://www.universalhub.com/crime/index.html">Universal Hub</a>';
 
 const BOSTON_CENTER = [42.3408, -71.0892];
 
@@ -21,7 +21,7 @@ function dotIcon(category) {
 function popupHtml(inc) {
     const cat = CATEGORY_LABELS[inc.category] || "Incident";
     const when = formatRelative(inc.occurred_on);
-    const source = inc.source_type === "bpd_story" ? " · BPD story" : "";
+    const source = inc.source_name ? ` · ${escapeHtml(inc.source_name)}` : "";
     const link = inc.source_url
         ? `<div class="pop-meta"><a href="${escapeHtml(inc.source_url)}" target="_blank" rel="noreferrer">Read source story →</a></div>`
         : "";
