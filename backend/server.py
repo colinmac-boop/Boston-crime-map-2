@@ -310,13 +310,18 @@ async def recent_incidents(limit: int = Query(12, ge=1, le=50)) -> dict[str, Any
 
 @api.get("/stories")
 async def list_stories(
-    limit: int = Query(10, ge=1, le=50),
+    limit: int = Query(10, ge=1, le=200),
     mappable_only: bool = Query(False),
+    category: Optional[str] = Query(None, description="Category slug or key."),
+    neighborhood: Optional[str] = Query(None, description="Neighborhood slug."),
+    days: Optional[int] = Query(None, ge=1, le=365),
 ) -> dict[str, Any]:
-    """Recent narrative BPD posts suitable for map context/editorial listing.
+    """Recent narrative posts suitable for map context/editorial listing.
 
     This is intentionally separate from /incidents: stories are source-attributed
-    narrative posts, not structured open-data incident rows.
+    narrative posts, not structured open-data incident rows. It accepts the same
+    map filter params so dropdown filtering doesn't depend on a small generic
+    client-side story sample.
     """
     bpd_meta = await ensure_stories_fresh_locked(db)
     universal_hub_meta = await ensure_universal_hub_fresh(db)
@@ -325,6 +330,16 @@ async def list_stories(
     query: dict[str, Any] = {}
     if mappable_only:
         query["mappable"] = True
+    if category:
+        cat = CATEGORY_BY_SLUG.get(category) or CATEGORY_BY_KEY.get(category)
+        if cat:
+            query["category"] = cat["key"]
+    if neighborhood:
+        n = NEIGHBORHOOD_BY_SLUG.get(neighborhood)
+        if n:
+            query["neighborhood"] = n["name"]
+    if days:
+        query["occurred_ts"] = {"$gte": _since_ts(days)}
     bpd_items = await db.bpd_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     uh_items = await db.universal_hub_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     boston25_items = await db.boston25_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)

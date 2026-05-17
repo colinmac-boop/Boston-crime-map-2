@@ -43,20 +43,11 @@ export default function MapPage() {
         if (neighborhood) q.neighborhood = neighborhood;
         Promise.all([
             fetchIncidents(q),
-            fetchStories(20, true),
+            fetchStories(200, true, q),
         ])
             .then(([r, storyData]) => {
                 setIncidents(r.items || []);
-                setStories((storyData.items || []).filter((s) => {
-                    const ageDays = s.occurred_on ? (Date.now() - new Date(s.occurred_on).getTime()) / 86400000 : 0;
-                    if (ageDays > days) return false;
-                    if (category) {
-                        const cat = categories.find((c) => c.slug === category || c.key === category);
-                        if (cat && s.category !== cat.key) return false;
-                    }
-                    if (neighborhood && (s.neighborhood || "").toLowerCase().replace(/\s+/g, "-") !== neighborhood) return false;
-                    return true;
-                }));
+                setStories(storyData.items || []);
             })
             .finally(() => setLoading(false));
 
@@ -66,7 +57,7 @@ export default function MapPage() {
         if (neighborhood) np.neighborhood = neighborhood;
         if (days !== 30) np.days = String(days);
         setParams(np, { replace: true });
-    }, [days, category, neighborhood, categories, setParams]);
+    }, [days, category, neighborhood, setParams]);
 
     const counts = useMemo(() => {
         const c = { total: incidents.length };
