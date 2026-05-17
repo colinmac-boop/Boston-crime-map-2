@@ -23,6 +23,7 @@ from starlette.middleware.cors import CORSMiddleware
 from bpd_client import DISTRICTS, ensure_fresh_locked, refresh_cache
 from bpd_stories_client import ensure_stories_fresh_locked, refresh_stories_cache
 from universal_hub_client import ensure_universal_hub_fresh, refresh_universal_hub_cache
+from boston25_client import ensure_boston25_fresh, refresh_boston25_cache
 from boston_data import (
     CATEGORIES,
     CATEGORY_BY_KEY,
@@ -247,6 +248,7 @@ async def refresh(
     meta = await refresh_cache(db)
     stories_meta = await refresh_stories_cache(db)
     universal_hub_meta = await refresh_universal_hub_cache(db)
+    boston25_meta = await refresh_boston25_cache(db)
     # Keep the original top-level BPD cache fields for tests/clients, while
     # adding narrative-source refresh metadata alongside them.
     return {
@@ -254,6 +256,7 @@ async def refresh(
         "bpd_open_data": meta,
         "bpd_stories": stories_meta,
         "universal_hub": universal_hub_meta,
+        "boston25": boston25_meta,
     }
 
 
@@ -314,18 +317,21 @@ async def list_stories(
     """
     bpd_meta = await ensure_stories_fresh_locked(db)
     universal_hub_meta = await ensure_universal_hub_fresh(db)
+    boston25_meta = await ensure_boston25_fresh(db)
     query: dict[str, Any] = {}
     if mappable_only:
         query["mappable"] = True
     bpd_items = await db.bpd_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     uh_items = await db.universal_hub_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
-    items = sorted([*bpd_items, *uh_items], key=lambda x: x.get("occurred_ts", 0), reverse=True)[:limit]
+    boston25_items = await db.boston25_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
+    items = sorted([*bpd_items, *uh_items, *boston25_items], key=lambda x: x.get("occurred_ts", 0), reverse=True)[:limit]
     return {
         "count": len(items),
         "items": items,
         "cache": {
             "bpd_stories": {k: v for k, v in bpd_meta.items() if k != "_id"},
             "universal_hub": {k: v for k, v in universal_hub_meta.items() if k != "_id"},
+            "boston25": {k: v for k, v in boston25_meta.items() if k != "_id"},
         },
     }
 

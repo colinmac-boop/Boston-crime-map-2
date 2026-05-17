@@ -10,7 +10,7 @@ import { pinIcon, pinSvgInline } from "@/components/CrimePin";
 // CartoDB Dark Matter — dark, gritty, civic.
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const TILE_ATTR =
-    '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a> · Incidents via <a href="https://data.boston.gov/">BPD Open Data</a>; stories via <a href="https://police.boston.gov/stories-in-the-news/">BPD</a> and <a href="https://www.universalhub.com/crime/index.html">Universal Hub</a>';
+    '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a> · Incidents via <a href="https://data.boston.gov/">BPD Open Data</a>; stories via <a href="https://police.boston.gov/stories-in-the-news/">BPD</a>, <a href="https://www.universalhub.com/crime/index.html">Universal Hub</a>, and <a href="https://www.boston25news.com/">Boston 25 News</a>';
 
 const BOSTON_CENTER = [42.3408, -71.0892];
 
