@@ -19,7 +19,9 @@ export const fetchWickedPicks = (limit = 6) =>
     client.get(`/wicked-picks?limit=${limit}`).then((r) => r.data);
 export const fetchStories = (limit = 10, mappableOnly = false, params = {}) =>
     client.get("/stories", {
-        params: { limit, mappable_only: mappableOnly, ...params },
+        // Keep explicit story limit/mappable flag last so map incident params
+        // like limit=2000 don't accidentally override /stories constraints.
+        params: { ...params, limit, mappable_only: mappableOnly },
     }).then((r) => r.data);
 
 export const geocodeAddress = (q) =>

@@ -41,9 +41,12 @@ export default function MapPage() {
         const q = { days, limit: 2000 };
         if (category) q.category = category;
         if (neighborhood) q.neighborhood = neighborhood;
+        const storyQ = { days };
+        if (category) storyQ.category = category;
+        if (neighborhood) storyQ.neighborhood = neighborhood;
         Promise.all([
             fetchIncidents(q),
-            fetchStories(200, true, q),
+            fetchStories(200, true, storyQ),
         ])
             .then(([r, storyData]) => {
                 setIncidents(r.items || []);
@@ -170,6 +173,7 @@ export default function MapPage() {
                     height="h-[60vh] min-h-[420px] md:h-[640px]"
                     searchPin={searchPin}
                     searchRadiusMi={search?.radius || null}
+                    autoFit={!search && Boolean(category || neighborhood)}
                 />
             </div>
 

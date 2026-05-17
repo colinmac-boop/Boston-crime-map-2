@@ -52,6 +52,7 @@ export default function CrimeMap({
     zoom = 12,
     cluster = true,
     interactive = true,
+    autoFit = false,
     searchPin = null,        // { lat, lng, label }
     searchRadiusMi = null,   // number, draws a circle if set with searchPin
 }) {
@@ -187,8 +188,10 @@ export default function CrimeMap({
               })
             : L.layerGroup();
 
+        const validPoints = [];
         incidents.forEach((inc) => {
             if (!inc.lat || !inc.lng) return;
+            validPoints.push([inc.lat, inc.lng]);
             const marker = L.marker([inc.lat, inc.lng], {
                 icon: dotIcon(inc.category),
                 title: inc.description,
@@ -199,7 +202,25 @@ export default function CrimeMap({
 
         group.addTo(map);
         layerRef.current = group;
-    }, [incidents, cluster]);
+
+        if (autoFit && !searchPin && validPoints.length > 0) {
+            setTimeout(() => {
+                if (!mapRef.current) return;
+                try {
+                    mapRef.current.invalidateSize();
+                    if (validPoints.length === 1) {
+                        mapRef.current.setView(validPoints[0], 15, { animate: true });
+                    } else {
+                        mapRef.current.fitBounds(L.latLngBounds(validPoints), {
+                            padding: [36, 36],
+                            maxZoom: 15,
+                            animate: true,
+                        });
+                    }
+                } catch {}
+            }, 80);
+        }
+    }, [incidents, cluster, autoFit, searchPin]);
 
     // Search pin + radius circle
     useEffect(() => {
