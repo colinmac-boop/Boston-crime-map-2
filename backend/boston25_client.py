@@ -31,6 +31,7 @@ MAX_LINKS = 30
 # falls off the current homepage/local index.
 SEED_URLS = [
     "https://www.boston25news.com/news/local/police-identify-man-killed-in-boston-stabbing/AZN7KDAXC5G4LGC7KALA4R674M/",
+    "https://www.boston25news.com/news/local/police-investigating-after-two-shot-overnight-dorchester/ZWQO5PP36BFB5FOI3MEFE7APYQ/",
 ]
 
 CRIME_KEYWORDS = (
@@ -57,6 +58,12 @@ ADDRESS_RE = re.compile(
     r"\b(?P<addr>\d{1,5}\s+[A-Z][A-Za-z0-9 .'-]+?\s+"
     r"(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|"
     r"Terrace|Ter\.?|Court|Ct\.?|Place|Pl\.?|Lane|Ln\.?|Way))",
+    re.I,
+)
+AREA_ADDRESS_RE = re.compile(
+    r"\b(?:area of|near|at|on)\s+(?P<addr>\d{1,5}\s+[A-Z][A-Za-z0-9 .'-]+?\s+"
+    r"(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|"
+    r"Terrace|Ter\.?|Court|Ct\.?|Place|Pl\.?|Lane|Ln\.?|Way))\b",
     re.I,
 )
 
@@ -146,11 +153,8 @@ def _bucket(category: str) -> str:
     return "other"
 
 
-def _extract_address(text: str) -> Optional[str]:
-    m = ADDRESS_RE.search(text)
-    if not m:
-        return None
-    addr = re.sub(r"\s+", " ", m.group("addr")).strip()
+def _clean_address(addr: str) -> Optional[str]:
+    addr = re.sub(r"\s+", " ", addr).strip()
     if len(addr) > 80 or re.search(r"\b(a\.m\.|p\.m\.|when|crews|responded|incident|story|graduate)\b", addr, re.I):
         return None
     addr = re.sub(r"\bSt\.?$", "Street", addr, flags=re.I)
@@ -161,10 +165,23 @@ def _extract_address(text: str) -> Optional[str]:
     return addr
 
 
+def _extract_address(text: str) -> Optional[str]:
+    for pattern in (AREA_ADDRESS_RE, ADDRESS_RE):
+        for m in pattern.finditer(text):
+            cleaned = _clean_address(m.group("addr"))
+            if cleaned:
+                return cleaned
+    return None
+
+
 def _neighborhood(text: str) -> str:
-    for n in BOSTON_NEIGHBORHOODS:
-        if re.search(rf"\b{re.escape(n)}\b", text, re.I):
-            return n
+    hits = []
+    for n in [n for n in BOSTON_NEIGHBORHOODS if n != "Boston"]:
+        m = re.search(rf"\b{re.escape(n)}\b", text, re.I)
+        if m:
+            hits.append((m.start(), n))
+    if hits:
+        return sorted(hits)[0][1]
     return "Boston"
 
 
