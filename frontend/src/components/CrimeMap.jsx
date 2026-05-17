@@ -18,6 +18,26 @@ function dotIcon(category) {
     return pinIcon(category);
 }
 
+function storyIcon(category) {
+    const color = CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
+    return L.divIcon({
+        className: "crime-pin story-pin",
+        html: `
+<svg xmlns="http://www.w3.org/2000/svg" width="54" height="66" viewBox="0 0 54 66" overflow="visible">
+    <path d="M27 62 L12 35 C9 27,12 18,18 13 C22 9,25 8,27 8 C29 8,32 9,36 13 C42 18,45 27,42 35 Z"
+          transform="translate(3,3)" fill="#0f0f10" opacity="0.55"/>
+    <path d="M27 62 L12 35 C9 27,12 18,18 13 C22 9,25 8,27 8 C29 8,32 9,36 13 C42 18,45 27,42 35 Z"
+          fill="${color}" stroke="#f4f1ea" stroke-width="4" stroke-linejoin="miter"/>
+    <circle cx="27" cy="27" r="15" fill="#f4f1ea" stroke="#0f0f10" stroke-width="2"/>
+    <text x="27" y="25" text-anchor="middle" font-family="Oswald, sans-serif" font-size="8" font-weight="700" fill="#0f0f10" letter-spacing="1">NEWS</text>
+    <text x="27" y="35" text-anchor="middle" font-family="Oswald, sans-serif" font-size="12" font-weight="700" fill="#8b1c1c">●</text>
+</svg>`,
+        iconSize: [54, 66],
+        iconAnchor: [27, 62],
+        popupAnchor: [0, -56],
+    });
+}
+
 function popupHtml(inc) {
     const cat = CATEGORY_LABELS[inc.category] || "Incident";
     const when = formatRelative(inc.occurred_on);
@@ -61,6 +81,7 @@ export default function CrimeMap({
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const layerRef = useRef(null);
+    const storyLayerRef = useRef(null);
     const searchLayerRef = useRef(null);
 
     // Detect touch / coarse pointer once on mount
@@ -172,6 +193,10 @@ export default function CrimeMap({
             map.removeLayer(layerRef.current);
             layerRef.current = null;
         }
+        if (storyLayerRef.current) {
+            map.removeLayer(storyLayerRef.current);
+            storyLayerRef.current = null;
+        }
 
         const group = cluster
             ? L.markerClusterGroup({
@@ -190,21 +215,41 @@ export default function CrimeMap({
               })
             : L.layerGroup();
 
+        const storyGroup = L.layerGroup();
         const validPoints = [];
+        const storyPointCounts = {};
         incidents.forEach((inc) => {
             if (!inc.lat || !inc.lng) return;
-            validPoints.push([inc.lat, inc.lng]);
-            const marker = L.marker([inc.lat, inc.lng], {
-                icon: dotIcon(inc.category),
+            const isStory = Boolean(inc.source_name || inc.source_url);
+            const baseLat = Number(inc.lat);
+            const baseLng = Number(inc.lng);
+            let lat = baseLat;
+            let lng = baseLng;
+            if (isStory) {
+                const key = `${baseLat.toFixed(6)},${baseLng.toFixed(6)}`;
+                const n = storyPointCounts[key] || 0;
+                storyPointCounts[key] = n + 1;
+                // Separate overlapping news pins by a few map meters so more than one source is visible.
+                const offsets = [[0, 0], [0.00018, 0.00018], [-0.00018, 0.00018], [0.00018, -0.00018], [-0.00018, -0.00018]];
+                const off = offsets[n % offsets.length];
+                lat = baseLat + off[0];
+                lng = baseLng + off[1];
+            }
+            validPoints.push([lat, lng]);
+            const marker = L.marker([lat, lng], {
+                icon: isStory ? storyIcon(inc.category) : dotIcon(inc.category),
                 title: inc.headline || inc.title || inc.description,
-                zIndexOffset: inc.source_name ? 500 : 0,
+                zIndexOffset: isStory ? 1200 : 0,
             });
             marker.bindPopup(popupHtml(inc));
-            group.addLayer(marker);
+            if (isStory) storyGroup.addLayer(marker);
+            else group.addLayer(marker);
         });
 
         group.addTo(map);
+        storyGroup.addTo(map);
         layerRef.current = group;
+        storyLayerRef.current = storyGroup;
 
         if (autoFit && !searchPin && validPoints.length > 0) {
             setTimeout(() => {

@@ -374,7 +374,16 @@ async def list_stories(
     uh_items = await db.universal_hub_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     boston25_items = await db.boston25_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     wcvb_items = await db.wcvb_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
-    items = sorted([*bpd_items, *uh_items, *boston25_items, *wcvb_items], key=lambda x: x.get("occurred_ts", 0), reverse=True)[:limit]
+    seen: set[str] = set()
+    unique_items: list[dict[str, Any]] = []
+    for item in sorted([*bpd_items, *uh_items, *boston25_items, *wcvb_items], key=lambda x: x.get("occurred_ts", 0), reverse=True):
+        key = item.get("source_url") or item.get("incident_number") or item.get("story_id")
+        if key and key in seen:
+            continue
+        if key:
+            seen.add(key)
+        unique_items.append(item)
+    items = unique_items[:limit]
     return {
         "count": len(items),
         "items": items,
