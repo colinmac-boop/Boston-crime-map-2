@@ -148,11 +148,28 @@ async def incidents_near(
     radius_mi: float = Query(0.5, ge=0.05, le=5.0),
     days: int = Query(90, ge=1, le=365),
     limit: int = Query(500, ge=1, le=2000),
+    category: Optional[str] = Query(None, description="Category slug or key."),
 ) -> dict[str, Any]:
-    """Incidents within `radius_mi` of (lat, lng) over the last `days`."""
-    await _bootstrap_if_empty()
+    """Incidents and attributed story pins near a point.
 
-    # Bounding-box pre-filter (degree-approx) to avoid Haversine on all 8k rows.
+    Address-search mode should obey the same crime dropdown as the main map,
+    and narrative story pins need to participate too because BPD open data can
+    lag behind current news.
+    """
+    await _bootstrap_if_empty()
+    await ensure_stories_fresh_locked(db)
+    await ensure_universal_hub_fresh(db)
+    await ensure_boston25_fresh(db)
+    await ensure_wcvb_fresh(db)
+
+    cat_key = None
+    if category:
+        cat = CATEGORY_BY_SLUG.get(category) or CATEGORY_BY_KEY.get(category)
+        if not cat:
+            raise HTTPException(404, f"Unknown category: {category}")
+        cat_key = cat["key"]
+
+    # Bounding-box pre-filter (degree-approx) to avoid Haversine on all rows.
     # 1 mile ≈ 0.0145° lat, ~0.0195° lng at Boston's latitude.
     dlat = radius_mi / 69.0
     dlng = radius_mi / 53.0
@@ -161,10 +178,23 @@ async def incidents_near(
         "lat": {"$gte": lat - dlat, "$lte": lat + dlat},
         "lng": {"$gte": lng - dlng, "$lte": lng + dlng},
     }
+    if cat_key:
+        box_filter["category"] = cat_key
+
     candidates = await db.incidents.find(box_filter, PROJECTION).to_list(length=5000)
+    for collection in (db.bpd_stories, db.universal_hub_stories, db.boston25_stories, db.wcvb_stories):
+        candidates.extend(await collection.find({**box_filter, "mappable": True}, PROJECTION).to_list(length=1000))
 
     rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
     for c in candidates:
+        if not c.get("lat") or not c.get("lng"):
+            continue
+        row_id = c.get("incident_number") or c.get("story_id") or c.get("source_url")
+        if row_id and row_id in seen:
+            continue
+        if row_id:
+            seen.add(row_id)
         d = haversine_miles(lat, lng, c["lat"], c["lng"])
         if d <= radius_mi:
             c["distance_mi"] = round(d, 3)

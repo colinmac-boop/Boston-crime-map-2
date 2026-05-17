@@ -22,14 +22,16 @@ function popupHtml(inc) {
     const cat = CATEGORY_LABELS[inc.category] || "Incident";
     const when = formatRelative(inc.occurred_on);
     const source = inc.source_name ? ` · ${escapeHtml(inc.source_name)}` : "";
+    const title = inc.headline || inc.title || inc.description || "Crime report";
+    const district = inc.district ? ` · District ${escapeHtml(inc.district)}` : "";
     const link = inc.source_url
         ? `<div class="pop-meta"><a href="${escapeHtml(inc.source_url)}" target="_blank" rel="noreferrer">Read source story →</a></div>`
         : "";
     return `
         <div data-testid="map-popup-${inc.incident_number}">
             <div class="pop-cat">${cat}${inc.shooting ? " · Shots fired" : ""}${source}</div>
-            <div class="pop-desc">${escapeHtml(inc.description)}</div>
-            <div class="pop-meta">${escapeHtml(inc.street || "Boston")} · ${escapeHtml(when)} · District ${escapeHtml(inc.district)}</div>
+            <div class="pop-desc">${escapeHtml(title)}</div>
+            <div class="pop-meta">${escapeHtml(inc.street || "Boston")} · ${escapeHtml(when)}${district}</div>
             ${link}
         </div>
     `;
@@ -194,7 +196,8 @@ export default function CrimeMap({
             validPoints.push([inc.lat, inc.lng]);
             const marker = L.marker([inc.lat, inc.lng], {
                 icon: dotIcon(inc.category),
-                title: inc.description,
+                title: inc.headline || inc.title || inc.description,
+                zIndexOffset: inc.source_name ? 500 : 0,
             });
             marker.bindPopup(popupHtml(inc));
             group.addLayer(marker);

@@ -27,5 +27,5 @@ export const fetchStories = (limit = 10, mappableOnly = false, params = {}) =>
 export const geocodeAddress = (q) =>
     client.get("/geocode", { params: { q } }).then((r) => r.data);
 
-export const fetchIncidentsNear = ({ lat, lng, radius_mi = 0.5, days = 90, limit = 500 }) =>
-    client.get("/incidents/near", { params: { lat, lng, radius_mi, days, limit } }).then((r) => r.data);
+export const fetchIncidentsNear = ({ lat, lng, radius_mi = 0.5, days = 90, limit = 500, category = "" }) =>
+    client.get("/incidents/near", { params: { lat, lng, radius_mi, days, limit, ...(category ? { category } : {}) } }).then((r) => r.data);

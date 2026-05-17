@@ -9,7 +9,7 @@ const RADIUS_OPTIONS = [
     { v: 1, l: "1 mi" },
 ];
 
-export default function AddressSearch({ onResult, onClear, days = 90, initialQuery = "" }) {
+export default function AddressSearch({ onResult, onClear, days = 90, initialQuery = "", category = "" }) {
     const [q, setQ] = useState(initialQuery);
     const [radius, setRadius] = useState(0.25);
     const [loading, setLoading] = useState(false);
@@ -30,6 +30,7 @@ export default function AddressSearch({ onResult, onClear, days = 90, initialQue
                 lng: hit.lng,
                 radius_mi: radius,
                 days,
+                category,
             });
             setActive({ hit, near });
             onResult?.({ hit, near, radius });
@@ -63,26 +64,36 @@ export default function AddressSearch({ onResult, onClear, days = 90, initialQue
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialQuery]);
 
-    // Re-search when radius changes after an initial result
-    const setRadiusAndRefetch = async (r) => {
-        setRadius(r);
+    // Re-search when the radius or the map crime filter changes after an initial result.
+    const refetchNear = async (nextRadius = radius) => {
         if (!active) return;
         setLoading(true);
         try {
             const near = await fetchIncidentsNear({
                 lat: active.hit.lat,
                 lng: active.hit.lng,
-                radius_mi: r,
+                radius_mi: nextRadius,
                 days,
+                category,
             });
             const next = { ...active, near };
             setActive(next);
-            onResult?.({ hit: active.hit, near, radius: r });
+            onResult?.({ hit: active.hit, near, radius: nextRadius });
         } catch {
             // keep prior result
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        refetchNear(radius);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [category, days]);
+
+    const setRadiusAndRefetch = async (r) => {
+        setRadius(r);
+        refetchNear(r);
     };
 
     return (
@@ -173,12 +184,12 @@ export default function AddressSearch({ onResult, onClear, days = 90, initialQue
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-3">
                         <div>
-                            <div className="kicker text-[var(--amber)]">Within {radius} mi · {days}d</div>
+                            <div className="kicker text-[var(--amber)]">Within {radius} mi · {days}d{category ? ` · ${category}` : ""}</div>
                             <div className="big-num text-5xl text-[var(--bg)] mt-1" data-testid="address-result-count">
                                 {active.near.count}
                             </div>
                             <div className="font-mono text-[10px] text-neutral-400 uppercase tracking-widest">
-                                Reported incidents
+                                Reports + story pins
                             </div>
                         </div>
                         <div>

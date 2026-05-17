@@ -103,6 +103,7 @@ export default function MapPage() {
                     onResult={(r) => setSearch(r)}
                     onClear={() => setSearch(null)}
                     days={Math.max(days, 90)}
+                    category={category}
                     initialQuery={initialAddress}
                 />
             </div>
