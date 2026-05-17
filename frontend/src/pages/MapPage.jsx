@@ -37,6 +37,17 @@ export default function MapPage() {
     }, []);
 
     useEffect(() => {
+        const nextCat = params.get("category") || "";
+        const nextNeighborhood = params.get("neighborhood") || "";
+        const parsedDays = parseInt(params.get("days") || "30", 10);
+        const nextDays = Number.isFinite(parsedDays) ? parsedDays : 30;
+        if (nextCat !== category) setCategory(nextCat);
+        if (nextNeighborhood !== neighborhood) setNeighborhood(nextNeighborhood);
+        if (nextDays !== days) setDays(nextDays);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [params]);
+
+    useEffect(() => {
         setLoading(true);
         const q = { days, limit: 2000 };
         if (category) q.category = category;
@@ -71,6 +82,9 @@ export default function MapPage() {
     // When the address search returns results, swap the map's incident set
     // to the nearby items so the focus is tight on the address.
     const mapIncidents = search ? search.near.items : [...stories, ...incidents];
+    const mapKey = search
+        ? `search-${search.hit.lat}-${search.hit.lng}-${search.near.count}`
+        : `filters-${category || "all"}-${neighborhood || "all"}-${days}-${incidents.length}-${stories.length}`;
     const searchPin = search
         ? { lat: search.hit.lat, lng: search.hit.lng, label: search.hit.label }
         : null;
@@ -169,6 +183,7 @@ export default function MapPage() {
 
             <div className="mt-3">
                 <CrimeMap
+                    key={mapKey}
                     incidents={mapIncidents}
                     height="h-[60vh] min-h-[420px] md:h-[640px]"
                     searchPin={searchPin}
