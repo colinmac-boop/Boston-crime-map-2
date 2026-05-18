@@ -57,8 +57,8 @@
   },
   "media_and_assets": {
     "textures": {
-      "newsprint_bg": "https://static.prod-images.emergentagent.com/jobs/3f956c8d-0e00-4941-b7d3-ebf0352337bc/images/d9b7350e30e907449e18773dc723d6a2d65606fa59ae98a082efaf91c3b60158.png",
-      "gritty_dark": "https://static.prod-images.emergentagent.com/jobs/3f956c8d-0e00-4941-b7d3-ebf0352337bc/images/90d4a6c1ea1274f5ca5f88a723cc1ac4b5cd7d51b7dcb853044df6d51f01e00e.png"
+      "newsprint_bg": null,
+      "gritty_dark": null
     },
     "image_urls": [
       {

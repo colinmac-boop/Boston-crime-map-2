@@ -29,6 +29,6 @@
   "seed_data_creation": "No seed data created. App caches ~7,795 real BPD incidents from data.boston.gov CKAN on startup.",
   "retest_needed": false,
   "main_agent_can_self_test": true,
-  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_boston_crime_api.py — run with `pytest /app/backend/tests/test_boston_crime_api.py -v`. Note: BPD data lags ~3 weeks, so /api/stats/overview will return counts.day=0 and counts.week=0 even when system is healthy — this is correct behavior, not a bug. /api/wicked-picks uses a 30d window to handle the lag and returns 6 picks. Public URL: https://code-auditor-28.preview.emergentagent.com. Cached incident count should be >0 (was 7795 at test time).",
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_boston_crime_api.py — run with `pytest /app/backend/tests/test_boston_crime_api.py -v`. Note: BPD data lags ~3 weeks, so /api/stats/overview will return counts.day=0 and counts.week=0 even when system is healthy — this is correct behavior, not a bug. /api/wicked-picks uses a 30d window to handle the lag and returns 6 picks. Public URL: https://bostoncrimemap.com. Cached incident count should be >0 (was 7795 at test time).",
   "rca of the issue": "N/A — no bugs found. All 17 backend tests and all 7 frontend routes verified working."
 }
