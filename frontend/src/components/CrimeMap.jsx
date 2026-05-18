@@ -207,9 +207,12 @@ export default function CrimeMap({
                   iconCreateFunction: (c) => {
                       const n = c.getChildCount();
                       return L.divIcon({
-                          html: `<div style="background:#1c1b1a;color:#f4f1ea;border:2px solid #8b1c1c;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.05em;box-shadow:3px 3px 0 #8b1c1c">${n}</div>`,
-                          className: "",
-                          iconSize: [38, 38],
+                          // High-contrast on the dark Carto basemap. The old
+                          // ink-on-oxblood cluster read like decoration, which
+                          // made a populated map look empty at a glance.
+                          html: `<div style="background:#f4f1ea;color:#0f0f10;border:3px solid #8b1c1c;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:800;font-size:15px;letter-spacing:0.04em;box-shadow:4px 4px 0 rgba(139,28,28,0.85),0 0 0 2px rgba(15,15,16,0.9)">${n}</div>`,
+                          className: "crime-cluster-icon",
+                          iconSize: [46, 46],
                       });
                   },
               })
@@ -394,6 +397,14 @@ export default function CrimeMap({
                 </button>
             )}
             {/* Map overlay legend — collapsible on mobile */}
+            {incidents.length === 0 && (
+                <div
+                    className="absolute z-[400] left-3 top-3 bg-[var(--surface)] border-2 border-[var(--ink)] px-3 py-2 font-mono text-xs text-[var(--muted)] shadow-stamp"
+                    data-testid="map-empty-note"
+                >
+                    No mapped points for this filter/window yet.
+                </div>
+            )}
             <details
                 className="absolute z-[400] left-2 bottom-2 bg-[var(--surface)] border-2 border-[var(--ink)] max-w-[300px] [&[open]>summary]:border-b-2 [&[open]>summary]:border-[var(--ink)]/40"
                 data-testid="map-legend"

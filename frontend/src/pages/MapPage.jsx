@@ -18,7 +18,7 @@ export default function MapPage() {
     const [params, setParams] = useSearchParams();
     const initialCat = params.get("category") || "";
     const initialN = params.get("neighborhood") || "";
-    const initialD = parseInt(params.get("days") || "30", 10);
+    const initialD = parseInt(params.get("days") || "90", 10);
 
     const [days, setDays] = useState(initialD);
     const [category, setCategory] = useState(initialCat);
@@ -39,8 +39,8 @@ export default function MapPage() {
     useEffect(() => {
         const nextCat = params.get("category") || "";
         const nextNeighborhood = params.get("neighborhood") || "";
-        const parsedDays = parseInt(params.get("days") || "30", 10);
-        const nextDays = Number.isFinite(parsedDays) ? parsedDays : 30;
+        const parsedDays = parseInt(params.get("days") || "90", 10);
+        const nextDays = Number.isFinite(parsedDays) ? parsedDays : 90;
         if (nextCat !== category) setCategory(nextCat);
         if (nextNeighborhood !== neighborhood) setNeighborhood(nextNeighborhood);
         if (nextDays !== days) setDays(nextDays);
@@ -55,13 +55,23 @@ export default function MapPage() {
         const storyQ = { days };
         if (category) storyQ.category = category;
         if (neighborhood) storyQ.neighborhood = neighborhood;
-        Promise.all([
+        Promise.allSettled([
             fetchIncidents(q),
             fetchStories(200, true, storyQ),
         ])
-            .then(([r, storyData]) => {
-                setIncidents(r.items || []);
-                setStories(storyData.items || []);
+            .then(([incidentResult, storyResult]) => {
+                if (incidentResult.status === "fulfilled") {
+                    setIncidents(incidentResult.value.items || []);
+                } else {
+                    console.error("Incident fetch failed", incidentResult.reason);
+                    setIncidents([]);
+                }
+                if (storyResult.status === "fulfilled") {
+                    setStories(storyResult.value.items || []);
+                } else {
+                    console.error("Story fetch failed", storyResult.reason);
+                    setStories([]);
+                }
             })
             .finally(() => setLoading(false));
 
@@ -69,7 +79,7 @@ export default function MapPage() {
         const np = {};
         if (category) np.category = category;
         if (neighborhood) np.neighborhood = neighborhood;
-        if (days !== 30) np.days = String(days);
+        if (days !== 90) np.days = String(days);
         setParams(np, { replace: true });
     }, [days, category, neighborhood, setParams]);
 

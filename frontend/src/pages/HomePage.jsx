@@ -41,25 +41,32 @@ export default function HomePage() {
 
     useEffect(() => {
         let alive = true;
-        Promise.all([
+        Promise.allSettled([
             fetchOverview(),
             fetchRecent(8),
-            fetchIncidents({ days: 30, limit: 1500 }),
+            // BPD's structured open data can lag for weeks; use a wider map
+            // window so the map still renders useful context while current
+            // narrative story pins carry the freshest items.
+            fetchIncidents({ days: 90, limit: 1500 }),
             fetchNeighborhoods(),
             fetchCategories(),
             fetchWickedPicks(6),
             fetchStories(8),
-        ]).then(([ov, rec, inc, ns, cats, p, storyData]) => {
+        ]).then((results) => {
             if (!alive) return;
-            setOverview(ov);
-            setRecent(rec.items || []);
-            const storyItems = storyData.items || [];
+            const [ov, rec, inc, ns, cats, p, storyData] = results.map((r) => r.status === "fulfilled" ? r.value : null);
+            results.forEach((r, i) => {
+                if (r.status === "rejected") console.error(`Home fetch ${i} failed`, r.reason);
+            });
+            if (ov) setOverview(ov);
+            if (rec) setRecent(rec.items || []);
+            const storyItems = storyData?.items || [];
             setStories(storyItems);
-            setMapIncidents([...(storyItems.filter((s) => s.mappable)), ...(inc.items || [])]);
-            setNeighborhoods(ns.items || []);
-            setCategories(cats.items || []);
-            setPicks(p.items || []);
-        }).catch((e) => console.error("Home fetch failed", e));
+            setMapIncidents([...(storyItems.filter((s) => s.mappable)), ...(inc?.items || [])]);
+            if (ns) setNeighborhoods(ns.items || []);
+            if (cats) setCategories(cats.items || []);
+            if (p) setPicks(p.items || []);
+        });
         return () => { alive = false; };
     }, []);
 
