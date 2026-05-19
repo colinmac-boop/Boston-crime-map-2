@@ -214,7 +214,7 @@ export default function HomePage() {
                             In the news <span className="font-display italic text-[var(--muted)] text-3xl md:text-4xl">while open data catches up</span>
                         </h3>
                         <p className="font-display italic text-[var(--muted)] mt-1 max-w-3xl">
-                            Narrative crime items from Boston Police, Universal Hub, and Boston 25 News. Mappable stories are added to the map; broader alerts stay here as context.
+                            Narrative crime items from Boston Police, Universal Hub, Boston 25 News, and WCVB. Mappable stories are added to the map; broader alerts stay here as context.
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -226,6 +226,9 @@ export default function HomePage() {
                         </a>
                         <a href="https://www.boston25news.com/" target="_blank" rel="noreferrer" className="btn-ghost text-xs">
                             Boston 25 →
+                        </a>
+                        <a href="https://www.wcvb.com/" target="_blank" rel="noreferrer" className="btn-ghost text-xs">
+                            WCVB →
                         </a>
                     </div>
                 </div>

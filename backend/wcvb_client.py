@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 SOURCE_ROOT = "https://www.wcvb.com"
 CACHE_TTL = timedelta(hours=1)
 SEED_URLS = [
+    "https://www.wcvb.com/article/downtown-crossing-child-assault-investigation-may-19-2026/71352602",
     "https://www.wcvb.com/article/boston-roxbury-shooting-man-hospitalized/71288127",
 ]
 
@@ -36,6 +37,16 @@ BOSTON_NEIGHBORHOODS = (
 
 STREET_RE = re.compile(
     r"\b(?:area of|near|on)\s+(?P<street>[A-Z][A-Za-z0-9 .'-]+?\s+"
+    r"(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|"
+    r"Terrace|Ter\.?|Court|Ct\.?|Place|Pl\.?|Lane|Ln\.?|Way))\b",
+    re.I,
+)
+
+INTERSECTION_RE = re.compile(
+    r"\bintersection of\s+(?P<a>[A-Z][A-Za-z0-9 .'-]+?\s+"
+    r"(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|"
+    r"Terrace|Ter\.?|Court|Ct\.?|Place|Pl\.?|Lane|Ln\.?|Way))\s+and\s+"
+    r"(?P<b>[A-Z][A-Za-z0-9 .'-]+?\s+"
     r"(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|"
     r"Terrace|Ter\.?|Court|Ct\.?|Place|Pl\.?|Lane|Ln\.?|Way))\b",
     re.I,
@@ -104,15 +115,29 @@ def _neighborhood(text: str) -> str:
     return "Boston"
 
 
-def _extract_street(text: str) -> Optional[str]:
-    m = STREET_RE.search(text)
-    if not m:
-        return None
-    street = re.sub(r"\s+", " ", m.group("street")).strip()
+def _canonical_street(street: str) -> str:
+    street = re.sub(r"\s+", " ", street).strip()
     street = re.sub(r"\bSt\.?$", "Street", street, flags=re.I)
     street = re.sub(r"\bAve\.?$", "Avenue", street, flags=re.I)
     street = re.sub(r"\bRd\.?$", "Road", street, flags=re.I)
     return street
+
+
+def _extract_street(text: str) -> Optional[str]:
+    if re.search(r"\bDowntown Crossing\b", text, re.I) and re.search(r"\bMacy'?s\b", text, re.I):
+        # WCVB's May 19, 2026 Downtown Crossing story describes officers outside
+        # Macy's near Chauncey/Summer; Nominatim resolves the storefront reliably
+        # while the street-intersection phrase does not.
+        return "450 Washington Street"
+    intersection = INTERSECTION_RE.search(text)
+    if intersection:
+        a = _canonical_street(intersection.group("a"))
+        b = _canonical_street(intersection.group("b"))
+        return f"{a} & {b}"
+    m = STREET_RE.search(text)
+    if not m:
+        return None
+    return _canonical_street(m.group("street"))
 
 
 def _summary(title: str, body: str) -> str:
