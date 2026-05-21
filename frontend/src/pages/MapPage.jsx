@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { fetchIncidents, fetchNeighborhoods, fetchCategories, fetchStories } from "@/lib/api";
+import { fetchIncidents, fetchNeighborhoods, fetchCategories, fetchStories, fetchBpdSupplemental } from "@/lib/api";
 import { CATEGORY_LABELS, CATEGORY_ORDER, colorFor } from "@/lib/format";
 import CrimeMap from "@/components/CrimeMap";
 import { pinSvgInline } from "@/components/CrimePin";
@@ -58,20 +58,36 @@ export default function MapPage() {
         Promise.allSettled([
             fetchIncidents(q),
             fetchStories(200, true, storyQ),
+            fetchBpdSupplemental(500, storyQ),
         ])
-            .then(([incidentResult, storyResult]) => {
+            .then(([incidentResult, storyResult, supplementalResult]) => {
                 if (incidentResult.status === "fulfilled") {
                     setIncidents(incidentResult.value.items || []);
                 } else {
                     console.error("Incident fetch failed", incidentResult.reason);
                     setIncidents([]);
                 }
+                const nextStories = [];
                 if (storyResult.status === "fulfilled") {
-                    setStories(storyResult.value.items || []);
+                    nextStories.push(...(storyResult.value.items || []));
                 } else {
                     console.error("Story fetch failed", storyResult.reason);
-                    setStories([]);
                 }
+                if (supplementalResult.status === "fulfilled") {
+                    nextStories.push(...(supplementalResult.value.items || []));
+                } else {
+                    console.error("BPD supplemental fetch failed", supplementalResult.reason);
+                }
+                const seen = new Set();
+                setStories(nextStories
+                    .sort((a, b) => (b.occurred_ts || 0) - (a.occurred_ts || 0))
+                    .filter((item) => {
+                        const key = item.incident_number || item.story_id || item.source_url;
+                        if (!key) return true;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    }));
             })
             .finally(() => setLoading(false));
 

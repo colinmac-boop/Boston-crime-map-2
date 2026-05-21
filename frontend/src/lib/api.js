@@ -24,6 +24,9 @@ export const fetchStories = (limit = 10, mappableOnly = false, params = {}) =>
         params: { ...params, limit, mappable_only: mappableOnly },
     }).then((r) => r.data);
 
+export const fetchBpdSupplemental = (limit = 500, params = {}) =>
+    axios.get("/api/bpd-supplemental", { params: { ...params, limit } }).then((r) => r.data);
+
 export const geocodeAddress = (q) =>
     client.get("/geocode", { params: { q } }).then((r) => r.data);
 
