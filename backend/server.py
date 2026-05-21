@@ -22,6 +22,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from bpd_client import DISTRICTS, ensure_fresh_locked, refresh_cache
 from bpd_stories_client import ensure_stories_fresh_locked, refresh_stories_cache
+from bpd_supplemental_client import ensure_bpd_supplemental_fresh_locked, refresh_bpd_supplemental_cache
 from universal_hub_client import ensure_universal_hub_fresh, refresh_universal_hub_cache
 from boston25_client import ensure_boston25_fresh, refresh_boston25_cache
 from wcvb_client import ensure_wcvb_fresh, refresh_wcvb_cache
@@ -158,6 +159,7 @@ async def incidents_near(
     """
     await _bootstrap_if_empty()
     await ensure_stories_fresh_locked(db)
+    await ensure_bpd_supplemental_fresh_locked(db)
     await ensure_universal_hub_fresh(db)
     await ensure_boston25_fresh(db)
     await ensure_wcvb_fresh(db)
@@ -182,7 +184,7 @@ async def incidents_near(
         box_filter["category"] = cat_key
 
     candidates = await db.incidents.find(box_filter, PROJECTION).to_list(length=5000)
-    for collection in (db.bpd_stories, db.universal_hub_stories, db.boston25_stories, db.wcvb_stories):
+    for collection in (db.bpd_stories, db.bpd_supplemental, db.universal_hub_stories, db.boston25_stories, db.wcvb_stories):
         candidates.extend(await collection.find({**box_filter, "mappable": True}, PROJECTION).to_list(length=1000))
 
     rows: list[dict[str, Any]] = []
@@ -278,6 +280,7 @@ async def refresh(
     _check_refresh_auth(x_refresh_token=x_refresh_token, authorization=authorization)
     meta = await refresh_cache(db)
     stories_meta = await refresh_stories_cache(db)
+    bpd_supplemental_meta = await refresh_bpd_supplemental_cache(db)
     universal_hub_meta = await refresh_universal_hub_cache(db)
     boston25_meta = await refresh_boston25_cache(db)
     wcvb_meta = await refresh_wcvb_cache(db)
@@ -287,6 +290,7 @@ async def refresh(
         **meta,
         "bpd_open_data": meta,
         "bpd_stories": stories_meta,
+        "bpd_supplemental": bpd_supplemental_meta,
         "universal_hub": universal_hub_meta,
         "boston25": boston25_meta,
         "wcvb": wcvb_meta,
@@ -354,6 +358,7 @@ async def list_stories(
     client-side story sample.
     """
     bpd_meta = await ensure_stories_fresh_locked(db)
+    bpd_supplemental_meta = await ensure_bpd_supplemental_fresh_locked(db)
     universal_hub_meta = await ensure_universal_hub_fresh(db)
     boston25_meta = await ensure_boston25_fresh(db)
     wcvb_meta = await ensure_wcvb_fresh(db)
@@ -371,13 +376,14 @@ async def list_stories(
     if days:
         query["occurred_ts"] = {"$gte": _since_ts(days)}
     bpd_items = await db.bpd_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
+    bpd_supplemental_items = await db.bpd_supplemental.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     uh_items = await db.universal_hub_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     boston25_items = await db.boston25_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     wcvb_items = await db.wcvb_stories.find(query, PROJECTION).sort("occurred_ts", -1).limit(limit).to_list(length=limit)
     seen: set[str] = set()
     unique_items: list[dict[str, Any]] = []
-    for item in sorted([*bpd_items, *uh_items, *boston25_items, *wcvb_items], key=lambda x: x.get("occurred_ts", 0), reverse=True):
-        key = item.get("source_url") or item.get("incident_number") or item.get("story_id")
+    for item in sorted([*bpd_items, *bpd_supplemental_items, *uh_items, *boston25_items, *wcvb_items], key=lambda x: x.get("occurred_ts", 0), reverse=True):
+        key = item.get("incident_number") or item.get("story_id") or item.get("source_url")
         if key and key in seen:
             continue
         if key:
@@ -389,6 +395,7 @@ async def list_stories(
         "items": items,
         "cache": {
             "bpd_stories": {k: v for k, v in bpd_meta.items() if k != "_id"},
+            "bpd_supplemental": {k: v for k, v in bpd_supplemental_meta.items() if k != "_id"},
             "universal_hub": {k: v for k, v in universal_hub_meta.items() if k != "_id"},
             "boston25": {k: v for k, v in boston25_meta.items() if k != "_id"},
             "wcvb": {k: v for k, v in wcvb_meta.items() if k != "_id"},
