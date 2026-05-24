@@ -25,6 +25,13 @@ CACHE_TTL = timedelta(hours=1)
 SEED_URLS = [
     "https://www.wcvb.com/article/downtown-crossing-child-assault-investigation-may-19-2026/71352602",
     "https://www.wcvb.com/article/boston-roxbury-shooting-man-hospitalized/71288127",
+    # 2026-05-24: Arrest in Dacia St (Dorchester) shooting; Chivaugn Nettles.
+    "https://www.wcvb.com/article/boston-dorchester-dacia-st-shooting-arrest/71392346",
+    # 2026-05-20: BPD Officer O'Malley indicted on voluntary manslaughter
+    # charge in Dorchester/Roxbury shooting death; police-accountability.
+    "https://www.wcvb.com/article/boston-officer-omalley-king-shooting-voluntary-manslaughter-dorchester/71362872",
+    # 2026-05-20: Body-cam video from 2020 BPD shootout with Tyler Brown.
+    "https://www.wcvb.com/article/tyler-brown-boston-police-body-cam-video-2020/71366182",
 ]
 
 BOSTON_NEIGHBORHOODS = (

@@ -27,11 +27,21 @@ LOCAL_URL = "https://www.boston25news.com/news/local/"
 CACHE_TTL = timedelta(hours=1)
 MAX_LINKS = 30
 
-# Explicit seed from Colin's "map the stabbing" direction. Keep it even if it
-# falls off the current homepage/local index.
+# Explicit seeds from Colin's direction. Keep them durable even when they
+# fall off the current homepage/local index. Add new Boston-proper stories
+# here so they persist across cache refreshes.
 SEED_URLS = [
     "https://www.boston25news.com/news/local/police-identify-man-killed-in-boston-stabbing/AZN7KDAXC5G4LGC7KALA4R674M/",
     "https://www.boston25news.com/news/local/police-investigating-after-two-shot-overnight-dorchester/ZWQO5PP36BFB5FOI3MEFE7APYQ/",
+    # 2026-05-21: Five charged in brawl inside Dorchester District Court (510 Washington St).
+    "https://www.boston25news.com/news/local/5-people-arrested-after-brawl-breaks-out-boston-courthouse-police-say/KEAFL2A4S5C5LHIQX7JK5E43JM/",
+    # 2026-05-22: Fatal overnight shooting on Bowdoin St in Dorchester.
+    "https://www.boston25news.com/news/local/1-killed-following-overnight-shooting-dorchester/4Z2HC2BEQVBIZM4HEYIJ27ZMZY/",
+    # 2026-05-23: Arrest in 25 Dacia St (Dorchester) shooting.
+    "https://www.boston25news.com/news/local/boston-police-arrest-man-connection-with-dorchester-shooting-that-injured-one/EYUSKU5QG5F2JBBKVHXXWHIZ64/",
+    # 2026-05-20: BPD Officer Nicholas O'Malley indicted on voluntary manslaughter
+    # for Roxbury shooting death of carjacking suspect; police-accountability story.
+    "https://www.boston25news.com/news/local/boston-police-officer-indicted-shooting-death-dorchester-man/V3TALRFXLND7ZKLWJLJVY5FAIM/",
 ]
 
 CRIME_KEYWORDS = (
@@ -52,6 +62,12 @@ OUTSIDE_PLACE_HINTS = (
     "Brockton", "Cambridge", "Danvers", "Lawrence", "Worcester", "New York",
     "Times Square", "Wellesley", "Vermont", "New Hampshire", "Gloucester",
     "Maine", "Beverly", "Lowell", "Springfield",
+    # Common national/regional stories that bleed in through Boston 25's chyron
+    # or related-story rails. Keep this Boston-only.
+    "White House", "Washington, D.C.", "Washington DC", "San Diego", "Mexico",
+    "Florida", "Texas", "California", "Ohio", "Connecticut", "Rhode Island",
+    "Quincy", "Revere", "Chelsea", "Somerville", "Newton", "Medford", "Malden",
+    "Saugus", "Lynn", "Salem", "Framingham", "Waltham",
 )
 
 ADDRESS_RE = re.compile(
@@ -187,21 +203,33 @@ def _neighborhood(text: str) -> str:
 
 def _looks_like_boston_story(title: str, body: str, url: str) -> bool:
     # Boston25 pages carry lots of related-link/footer text. Judge relevance
-    # mostly from the headline and lead, not the entire page.
-    lead = body[:900]
+    # mostly from the headline and a short lead, not the entire page, so the
+    # ever-present "Boston 25 News" brand text in the chyron does not let
+    # national stories slip through.
+    lead = body[:400]
     signal_text = f"{title} {lead}"
     low = signal_text.lower()
     if not any(k in low for k in CRIME_KEYWORDS):
         return False
     if "crash" in title.lower() and not re.search(r"\b(charged|arrest|indicted|manslaughter|homicide)\b", signal_text, re.I):
         return False
-    outside_text = f"{title} {body[:300]}"
+    outside_text = f"{title} {body[:400]}"
     if any(re.search(rf"\b{re.escape(place)}\b", outside_text, re.I) for place in OUTSIDE_PLACE_HINTS):
         # Allow explicit Boston story URLs to override generic outside hints in
         # related-link boilerplate, but otherwise keep the map Boston-only.
         if "boston-stabbing" not in url and "dorchester" not in low and "south boston" not in low:
             return False
-    return any(re.search(rf"\b{re.escape(n)}\b", signal_text, re.I) for n in BOSTON_NEIGHBORHOODS)
+    # Require a Boston neighborhood mention in title or short lead, not just
+    # the bare word "Boston" (which is also the news-station brand).
+    specific_neighborhoods = [n for n in BOSTON_NEIGHBORHOODS if n != "Boston"]
+    if any(re.search(rf"\b{re.escape(n)}\b", signal_text, re.I) for n in specific_neighborhoods):
+        return True
+    # Fall back to "Boston" only when paired with a crime keyword in the title
+    # itself (e.g. "Boston police arrest...", "Boston shooting"), not just
+    # brand chrome.
+    if re.search(r"\bBoston\b", title, re.I) and any(k in title.lower() for k in CRIME_KEYWORDS):
+        return True
+    return False
 
 
 def _summary(title: str, body: str) -> str:
