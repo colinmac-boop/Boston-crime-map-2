@@ -41,32 +41,53 @@ export default function HomePage() {
 
     useEffect(() => {
         let alive = true;
+
+        // Render the map as soon as structured incidents arrive. The narrative
+        // /stories endpoint can take ~20s on a cold cache because it scrapes
+        // five upstream sources; previously the homepage waited on that promise
+        // before rendering any marker. We now resolve /stories independently
+        // and merge its mappable items into the existing pin set.
+        fetchIncidents({ days: 90, limit: 1500 })
+            .then((inc) => {
+                if (!alive) return;
+                setMapIncidents((prev) => {
+                    const stories = prev.filter((p) => p.source_url || p.source_name);
+                    return [...stories, ...(inc?.items || [])];
+                });
+            })
+            .catch((err) => console.error("fetchIncidents failed", err));
+
+        fetchStories(8)
+            .then((storyData) => {
+                if (!alive) return;
+                const storyItems = storyData?.items || [];
+                setStories(storyItems);
+                setMapIncidents((prev) => {
+                    const incidents = prev.filter((p) => !(p.source_url || p.source_name));
+                    return [...storyItems.filter((s) => s.mappable), ...incidents];
+                });
+            })
+            .catch((err) => console.error("fetchStories failed", err));
+
         Promise.allSettled([
             fetchOverview(),
             fetchRecent(8),
-            // BPD's structured open data can lag for weeks; use a wider map
-            // window so the map still renders useful context while current
-            // narrative story pins carry the freshest items.
-            fetchIncidents({ days: 90, limit: 1500 }),
             fetchNeighborhoods(),
             fetchCategories(),
             fetchWickedPicks(6),
-            fetchStories(8),
         ]).then((results) => {
             if (!alive) return;
-            const [ov, rec, inc, ns, cats, p, storyData] = results.map((r) => r.status === "fulfilled" ? r.value : null);
+            const [ov, rec, ns, cats, p] = results.map((r) => r.status === "fulfilled" ? r.value : null);
             results.forEach((r, i) => {
-                if (r.status === "rejected") console.error(`Home fetch ${i} failed`, r.reason);
+                if (r.status === "rejected") console.error(`Home meta fetch ${i} failed`, r.reason);
             });
             if (ov) setOverview(ov);
             if (rec) setRecent(rec.items || []);
-            const storyItems = storyData?.items || [];
-            setStories(storyItems);
-            setMapIncidents([...(storyItems.filter((s) => s.mappable)), ...(inc?.items || [])]);
             if (ns) setNeighborhoods(ns.items || []);
             if (cats) setCategories(cats.items || []);
             if (p) setPicks(p.items || []);
         });
+
         return () => { alive = false; };
     }, []);
 

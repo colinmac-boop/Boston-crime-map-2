@@ -6,6 +6,7 @@ copy, wicked-picks) are generated server-side so the frontend can stay simple.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import random
@@ -14,7 +15,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI, Header, HTTPException, Query, status
+from fastapi import APIRouter, FastAPI, Header, HTTPException, Query, Request, Response, status
 from fastapi.staticfiles import StaticFiles
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
@@ -50,6 +51,27 @@ db = client[os.environ["DB_NAME"]]
 
 app = FastAPI(title="Boston Crime Map API")
 api = APIRouter(prefix="/api")
+
+# Cache-Control policies. Railway and any downstream CDN/edge will honor these
+# and serve cached responses while the origin updates in the background. Tuned
+# to match our 1-hour upstream caches and our 30-minute UI freshness target.
+_CACHE_HEADERS_DEFAULT = "public, s-maxage=300, stale-while-revalidate=600"
+_CACHE_HEADERS_LONG = "public, s-maxage=3600, stale-while-revalidate=7200"
+
+
+@app.middleware("http")
+async def cache_headers(request: Request, call_next):
+    response: Response = await call_next(request)
+    if response.status_code != 200:
+        return response
+    path = request.url.path
+    # Static taxonomy endpoints rarely change
+    if path in ("/api/neighborhoods", "/api/categories", "/api/images/plates"):
+        response.headers.setdefault("Cache-Control", _CACHE_HEADERS_LONG)
+    # Map / blotter data: short-cache + SWR so a popular page renders instantly
+    elif path.startswith(("/api/incidents", "/api/stats/", "/api/stories", "/api/wicked-picks")):
+        response.headers.setdefault("Cache-Control", _CACHE_HEADERS_DEFAULT)
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -357,11 +379,19 @@ async def list_stories(
     map filter params so dropdown filtering doesn't depend on a small generic
     client-side story sample.
     """
-    bpd_meta = await ensure_stories_fresh_locked(db)
-    bpd_supplemental_meta = await ensure_bpd_supplemental_fresh_locked(db)
-    universal_hub_meta = await ensure_universal_hub_fresh(db)
-    boston25_meta = await ensure_boston25_fresh(db)
-    wcvb_meta = await ensure_wcvb_fresh(db)
+    # Refresh all narrative caches in parallel. Cold-cache `/api/stories` was
+    # the headline slow-load problem: five sequential scrapes ran on the
+    # critical request path, totalling ~22s on a fresh deploy. asyncio.gather
+    # caps the latency at the slowest single source instead of summing them.
+    # If any individual cache fails, fall back to whatever stale meta we have.
+    bpd_meta, bpd_supplemental_meta, universal_hub_meta, boston25_meta, wcvb_meta = await asyncio.gather(
+        ensure_stories_fresh_locked(db),
+        ensure_bpd_supplemental_fresh_locked(db),
+        ensure_universal_hub_fresh(db),
+        ensure_boston25_fresh(db),
+        ensure_wcvb_fresh(db),
+        return_exceptions=False,
+    )
     query: dict[str, Any] = {}
     if mappable_only:
         query["mappable"] = True
